@@ -18,6 +18,7 @@ const userController = {
       const user = await User.find({
         userId: id,
       });
+      console.log(user);
       res.status(200).json(user);
     } catch (err) {
       console.log(err);
@@ -38,7 +39,14 @@ const userController = {
   },
   addUser: async (req, res, next) => {
     try {
-      const user = await User.create(req.body);
+      const { userId, email, password, firstName, lastName, bio } = req.body;
+      const user = await User.create({
+        userId: userId,
+        email: email,
+        password: password,
+        name: firstName + " " + lastName,
+        bio: bio,
+      });
       res.status(200).json(user);
     } catch (err) {
       console.log(err);

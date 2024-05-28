@@ -9,17 +9,46 @@ const userSchema = mongoose.Schema({
     type: String,
     required: true,
   },
+  phone: {
+    type: String,
+    required: false,
+  },
   password: {
     type: String,
     required: true,
   },
-  firstName: {
+  name: {
     type: String,
     required: true,
   },
-  lastName: {
+  avatarUrl: {
     type: String,
-    required: true,
+    required: false,
+    default: "",
+  },
+  bio: {
+    type: String,
+    required: false,
+  },
+
+  //Array of ObjectIds
+  following: {
+    type: Array,
+    required: false,
+  },
+  followers: {
+    type: Array,
+    required: false,
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now,
+    required: false,
+  },
+  updatedAt: {
+    type: Date,
+    default: Date.now,
+    required: false,
   },
 });
 
