@@ -3,10 +3,10 @@ const router = express.Router();
 const userController = require("../controllers/user.controller");
 
 // get all users
-router.get("/getAllUsers", userController.getAllUsers);
+router.get("/", userController.getUsers);
 
 // find user by id
-router.get("/getUserById/:id", userController.getUserById);
+router.get("/:id", userController.getUserById);
 
 // find user by email
 router.get("/getUserByEmail/:email", userController.getUserByEmail);

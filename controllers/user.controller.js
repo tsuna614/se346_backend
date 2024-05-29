@@ -2,10 +2,44 @@ const { log } = require("console");
 const User = require("../models/user.model");
 
 const userController = {
-  getAllUsers: async (req, res, next) => {
+  getUsers: async (req, res, next) => {
     try {
-      const users = await User.find({});
-      res.status(200).json(users);
+      //If name or email is empty or undefined, simply make it ""
+      //Use user id to check if they are following each other
+      //If they do, add one field isFollowing: true , else false
+      const limit = parseInt(req.query.limit) || 10;
+      const page = parseInt(req.query.page) || 1;
+      let { name, email, userId } = req.query;
+
+      if (name === undefined || name === "") {
+        name = "";
+      }
+      if (email === undefined || email === "") {
+        email = "";
+      }
+
+      const users = await User.find({
+        name: { $regex: name, $options: "i" },
+        email: { $regex: email, $options: "i" },
+      })
+        .limit(limit)
+        .skip(limit * (page - 1));
+
+      if (userId) {
+        const modifiedUsers = users.map((user) => {
+          const userObj = user.toObject();
+          userObj.isFollowing = userObj.followers.some(
+            (follower) => follower === userId
+          );
+          return userObj;
+        });
+        //Remove self if exist
+        const result = modifiedUsers.filter((user) => user.userId !== userId);
+
+        res.status(200).json(result);
+      } else {
+        res.status(200).json(users);
+      }
     } catch (err) {
       console.log(err);
       res.status(500).json({ message: err.message });
