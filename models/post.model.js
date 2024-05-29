@@ -6,6 +6,7 @@ const commentSchema = mongoose.Schema({
     type: String,
     required: true,
   },
+
   commenterName: {
     type: String,
     required: true,
@@ -97,30 +98,25 @@ const postSchema = mongoose.Schema({
 //Post: if a post is shared, the sharePostId field will contain the id of the original post
 //Group: if a post is posted in a group, the groupId field will contain the id of the group
 
-commentSchema.pre("remove", async function (next) {
-  try {
-    console.log("PRE: removing comment from posts");
-    await mongoose
-      .model("Post")
-      .updateMany({}, { $pull: { comments: { _id: this._id } } });
-    console.log("PRE: comment removed from posts");
-    next();
-  } catch (err) {
-    next(err);
+postSchema.pre("findOneAndDelete", async function (next) {
+  const post = this._conditions._id;
+  const postToDelete = await Post.findOne({ _id: post });
+
+  if (postToDelete.mediaUrl) {
+    const publicId = postToDelete.mediaUrl.split("/").pop().split(".")[0];
+    await cloudinary.uploader.destroy(publicId);
   }
+  next();
 });
-postSchema.pre("remove", async function (next) {
-  try {
-    // Remove all comments associated with the post
-    console.log("PRE: removing comments associated with the post");
-    await mongoose
-      .model("Comment")
-      .deleteMany({ _id: { $in: this.comments.map((c) => c._id) } });
-    console.log("PRE: comments removed");
-    next();
-  } catch (err) {
-    next(err);
-  }
+postSchema.pre("deleteMany", async function (next) {
+  const posts = await this.model.find(this.getFilter());
+  posts.forEach(async (post) => {
+    if (post.mediaUrl) {
+      const publicId = post.mediaUrl.split("/").pop().split(".")[0];
+      await cloudinary.uploader.destroy(publicId);
+    }
+  });
+  next();
 });
 const Comment = mongoose.model("Comment", commentSchema);
 const Post = mongoose.model("Post", postSchema);

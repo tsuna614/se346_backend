@@ -18,9 +18,11 @@ const postController = {
     try {
       const { userId } = req.params;
       //Sort by date created, newest first
-      const posts = await Post.find({ posterId: userId }).sort({
+      //Remove post that has groupId
+      const posts = await Post.find({ posterId: userId, groupId: null }).sort({
         createdAt: -1,
       });
+
       const user = await User.findOne({ userId: userId });
       res.status(200).json({ user, posts });
     } catch (err) {
