@@ -233,6 +233,21 @@ const postController = {
       res.status(500).json({ message: err.message });
     }
   },
+  deletePost: async (req, res, next) => {
+    try {
+      const postId = req.params.id;
+      const post = await Post.findOne({ _id: postId });
+      if (!post) {
+        res.status(404).json("Post not found");
+      }
+      //Comments are contained in the post
+      await post.deleteOne();
+      res.status(200).json("Post deleted");
+    } catch (err) {
+      console.log(err);
+      res.status(500).json({ message: err.message });
+    }
+  },
 
   postToWall: async (req, res, next) => {
     try {
@@ -301,20 +316,23 @@ const postController = {
   },
   sharePost: async (req, res, next) => {
     try {
-      const { userId, sharePostId } = req.body;
-      const poster = await User.findOne({ userId: userId });
-      const post = await Post.findOne({ _id: sharePostId });
+      const { userId, postId } = req.body;
+
+      const post = await Post.findOne({ _id: postId });
       const user = await User.findOne({ userId: userId });
+      if (!user) {
+        res.status(404).json("User not found");
+      }
       if (!post) {
         res.status(404).json("Post not found");
       }
       const sharedPost = await Post.create({
-        content: "",
+        content: " ",
         posterAvatarUrl: user.avatarUrl,
         name: user.name,
         posterId: userId,
         mediaUrl: "", //No media for shared post
-        sharePostId: sharePostId, //Used to query the original post
+        sharePostId: postId, //Used to query the original post
       });
       console.log("Post shared: ", sharedPost);
       res.status(200).json(sharedPost);

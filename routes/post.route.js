@@ -10,8 +10,10 @@ router.get("/UserWallPosts/:userId", postController.getUserWallPostsAndUser);
 router.get("/home", postController.getHomePosts);
 router.get("/:id", postController.getAPost);
 router.get("/:id/comments", postController.getComments);
+router.delete("/:id", postController.deletePost);
 router.delete("/:id/comments/:commentId", postController.deleteComment);
 router.post("/postToWall", uploadMedia, postController.postToWall);
+router.post("/sharePost", postController.sharePost);
 
 router.put("/:id/toggleLike", postController.toggleLike);
 router.post("/:id/comments", uploadMedia, postController.commentOnPost);
