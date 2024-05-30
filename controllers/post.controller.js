@@ -173,7 +173,10 @@ const postController = {
     try {
       const { userId } = req.query;
       const user = await User.findOne({ userId: userId });
-      const following = user.following;
+      let following = user.following;
+      if (!following) {
+        following = [];
+      }
       const groups = await Group.find({
         members: { $elemMatch: { id: userId } },
       });
