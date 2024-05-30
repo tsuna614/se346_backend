@@ -92,11 +92,22 @@ const groupController = {
   getGroup: async (req, res, next) => {
     try {
       const { groupId } = req.params;
+      const { userId } = req.query;
+
       const group = await Group.findOne({ _id: groupId })
         .populate("members")
         .populate("admins");
 
-      res.status(200).json(group);
+      //Check if user is a member and admin
+      const modifiedGroup = group.toObject();
+      modifiedGroup.isMember = modifiedGroup.members.some(
+        (member) => member.id === userId
+      );
+      modifiedGroup.isAdmin = modifiedGroup.admins.some(
+        (admin) => admin.id === userId
+      );
+
+      res.status(200).json(modifiedGroup);
     } catch (err) {
       console.log(err);
       res.status(500).json({ message: err.message });
@@ -105,10 +116,17 @@ const groupController = {
   getGroupPosts: async (req, res, next) => {
     try {
       const { groupId } = req.params;
+      const { userId } = req.query;
       const posts = await Post.find({ groupId: groupId }).sort({
         createdAt: -1,
       });
-      res.status(200).json(posts);
+      const modifiedPosts = posts.map((post) => {
+        const postObj = post.toObject();
+        postObj.userLiked = post.likes.some((like) => like === userId);
+        postObj.userIsPoster = post.posterId === userId;
+        return postObj;
+      });
+      res.status(200).json({ posts: modifiedPosts });
     } catch (err) {
       console.log(err);
       res.status(500).json({ message: err.message });

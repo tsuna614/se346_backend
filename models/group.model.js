@@ -75,18 +75,16 @@ const groupSchema = new Schema({
 // Middleware to handle cleanup when a group is deleted
 groupSchema.pre("findOneAndDelete", async function (next) {
   const group = await this.model.findOne(this.getFilter());
-  const postIds = group.postIds;
 
   console.log("Deleting group: ", group);
-  console.log("Deleting posts: ", postIds);
-
   // Delete all posts in the group
-  await Post.deleteMany({ _id: { $in: postIds } });
-  // Delete banner image if it exists
+  console.log("Deleting posts with groupId: ", group._id);
+  await Post.deleteMany({ groupId: group._id });
+  // Delete the group's banner image from Cloudinary
   if (group.bannerImgUrl) {
-    const publicId = group.bannerImgUrl.split("/").pop().split(".")[0];
-    const result = await cloudinary.uploader.destroy(publicId);
-    console.log("Deleted banner image: ", result);
+    await cloudinary.uploader
+      .destroy(group.bannerImgUrl.split("/").pop().split(".")[0])
+      .then((result) => console.log(result));
   }
 
   next();
