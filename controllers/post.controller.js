@@ -3,6 +3,7 @@ const User = require("../models/user.model");
 const { Post, Comment } = require("../models/post.model");
 const { upload, cloudinary } = require("../cloudinary");
 const Group = require("../models/group.model");
+const PostAdditional = require("../utils/postAdditional");
 //Generally receive a content, and file in multer as well as userId
 
 //Post to wall (normal post, no groupid)
@@ -23,7 +24,7 @@ const postController = {
       if (otherUserId) {
         return module.exports.getOtherUserWallPostsAndUser(req, res, next);
       }
-
+      const user = await User.findOne({ userId: userId });
       //Sort by date created, newest first
       //Remove post that has groupId
       const posts = await Post.find({ posterId: userId, groupId: null }).sort({
@@ -34,9 +35,10 @@ const postController = {
         const postObj = post.toObject();
         postObj.userLiked = post.likes.some((like) => like === userId);
         postObj.userIsPoster = post.posterId === userId;
+
         return postObj;
       });
-      const user = await User.findOne({ userId: userId });
+
       res.status(200).json({ user, posts: modifiedPosts });
     } catch (err) {
       console.log(err);
@@ -57,14 +59,15 @@ const postController = {
       }).sort({
         createdAt: -1,
       });
+      const user = await User.findOne({ userId: otherUserId });
       //Attach userLiked, userIsPoster field to each post
       const modifiedPosts = posts.map((post) => {
         const postObj = post.toObject();
         postObj.userLiked = post.likes.some((like) => like === userId);
         postObj.userIsPoster = post.posterId === userId;
+
         return postObj;
       });
-      const user = await User.findOne({ userId: otherUserId });
 
       let modifiedUser = user.toObject();
       modifiedUser.isFollowing = user.followers.some(
@@ -177,20 +180,26 @@ const postController = {
       if (!following) {
         following = [];
       }
-      const groups = await Group.find({
+      //groupId in post is only a string so we this result to be a string
+      const groupUserIsIn = await Group.find({
         members: { $elemMatch: { id: userId } },
       });
-      const posts = await Post.find({
-        $or: [{ posterId: { $in: following } }, { groupId: { $in: groups } }],
-      }).sort({
-        createdAt: -1,
-      });
+      let groupIds = groupUserIsIn.map((group) => group._id.toString());
+      //Get all posts from groups user is in
+      const groupPosts = await Post.find({ groupId: { $in: groupIds } });
+      //Get all posts from users user is following
+      const userPosts = await Post.find({ posterId: { $in: following } });
+      const posts = groupPosts.concat(userPosts);
+
       const modifiedPosts = posts.map((post) => {
         const postObj = post.toObject();
+
         postObj.userLiked = post.likes.some((like) => like === userId);
         postObj.userIsPoster = post.posterId === userId;
+
         return postObj;
       });
+
       res.status(200).json(modifiedPosts);
     } catch (err) {
       console.log(err);

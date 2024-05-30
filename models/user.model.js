@@ -1,5 +1,5 @@
 const mongoose = require("mongoose");
-
+const { Post } = require("./post.model");
 const userSchema = mongoose.Schema({
   userId: {
     type: String,
@@ -22,6 +22,11 @@ const userSchema = mongoose.Schema({
     required: true,
   },
   avatarUrl: {
+    type: String,
+    required: false,
+    default: "",
+  },
+  profileBackground: {
     type: String,
     required: false,
     default: "",
@@ -50,6 +55,18 @@ const userSchema = mongoose.Schema({
     default: Date.now,
     required: false,
   },
+});
+
+//After change or save, update updatedAt
+//Get current avatarUrl and update it on post posterAvatarUrl with the same userId
+userSchema.post("findOneAndUpdate", async function (doc) {
+  const userId = doc.userId;
+  const avatarUrl = doc.avatarUrl;
+
+  await Post.updateMany(
+    { posterId: userId },
+    { $set: { posterAvatarUrl: avatarUrl } }
+  );
 });
 
 const User = mongoose.model("users", userSchema);

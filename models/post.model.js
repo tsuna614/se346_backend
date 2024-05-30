@@ -100,23 +100,63 @@ const postSchema = mongoose.Schema({
 
 postSchema.pre("findOneAndDelete", async function (next) {
   const post = this._conditions._id;
-  const postToDelete = await Post.findOne({ _id: post });
-
-  if (postToDelete.mediaUrl) {
-    const publicId = postToDelete.mediaUrl.split("/").pop().split(".")[0];
-    await cloudinary.uploader.destroy(publicId);
-  }
-  next();
-});
-postSchema.pre("deleteMany", async function (next) {
-  const posts = await this.model.find(this.getFilter());
-  posts.forEach(async (post) => {
-    if (post.mediaUrl) {
-      const publicId = post.mediaUrl.split("/").pop().split(".")[0];
+  try {
+    const postToDelete = await Post.findOne({ _id: post });
+    if (!postToDelete) {
+      throw new Error("Post not found");
+    }
+    // Delete associated comments
+    await Comment.deleteMany({ _id: { $in: postToDelete.comments } });
+    // Delete associated media
+    if (postToDelete.mediaUrl) {
+      const publicId = postToDelete.mediaUrl.split("/").pop().split(".")[0];
       await cloudinary.uploader.destroy(publicId);
     }
-  });
-  next();
+    next();
+  } catch (err) {
+    next(err);
+  }
+});
+postSchema.pre("findOneAndDelete", async function (next) {
+  const post = this._conditions._id;
+  try {
+    const postToDelete = await Post.findOne({ _id: post });
+    if (!postToDelete) {
+      throw new Error("Post not found");
+    }
+    // Delete associated comments
+    await Comment.deleteMany({ _id: { $in: postToDelete.comments } });
+    // Delete associated media
+    if (postToDelete.mediaUrl) {
+      const publicId = postToDelete.mediaUrl.split("/").pop().split(".")[0];
+      await cloudinary.uploader.destroy(publicId);
+    }
+    next();
+  } catch (err) {
+    next(err);
+  }
+});
+postSchema.pre("deleteMany", async function (next) {
+  const posts = this._conditions;
+  try {
+    const postsToDelete = await Post.find(posts);
+    if (!postsToDelete) {
+      throw new Error("Posts not found");
+    }
+    const deletePromises = postsToDelete.map(async (post) => {
+      // Delete associated comments
+      await Comment.deleteMany({ _id: { $in: post.comments } });
+      // Delete associated media
+      if (post.mediaUrl) {
+        const publicId = post.mediaUrl.split("/").pop().split(".")[0];
+        await cloudinary.uploader.destroy(publicId);
+      }
+    });
+    await Promise.all(deletePromises);
+    next();
+  } catch (err) {
+    next(err);
+  }
 });
 const Comment = mongoose.model("Comment", commentSchema);
 const Post = mongoose.model("Post", postSchema);
