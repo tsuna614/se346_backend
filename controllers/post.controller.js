@@ -3,7 +3,7 @@ const User = require("../models/user.model");
 const { Post, Comment } = require("../models/post.model");
 const { upload, cloudinary } = require("../cloudinary");
 const Group = require("../models/group.model");
-const PostAdditional = require("../utils/postAdditional");
+
 //Generally receive a content, and file in multer as well as userId
 
 //Post to wall (normal post, no groupid)
