@@ -203,12 +203,21 @@ const groupController = {
       }
       const group = await Group.findOne({ _id: groupId });
       group.members = group.members.filter((member) => member.id !== userId);
+      //If user is an admin, remove from admins
+      group.admins = group.admins.filter((admin) => admin.id !== userId);
       //if no members left, delete group
       if (group.members.length === 0) {
         await Group.findOneAndDelete({ _id: groupId });
         res.status(200).json({ message: "Group deleted" });
         return;
       }
+      //If no admins left, delete group
+      if (group.admins.length === 0) {
+        await Group.findOneAndDelete({ _id: groupId });
+        res.status(200).json({ message: "Group deleted" });
+        return;
+      }
+
       await group.save();
       res.status(200).json(group);
     } catch (err) {
