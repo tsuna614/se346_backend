@@ -113,7 +113,8 @@ const postController = {
   },
   commentOnPost: async (req, res, next) => {
     try {
-      const { content, userId, postId } = req.body;
+      const { content, userId } = req.body;
+      const postId = req.params.id;
       const commenter = await User.findOne({ userId: userId });
       const media = req.file;
       let mediaUrl = "";
@@ -123,18 +124,110 @@ const postController = {
       } else {
         mediaUrl = "";
       }
-      const comment = await Comment.create({
+      if (!commenter) {
+        res.status(404).json("Commenter not found");
+      }
+      if (!content) {
+        res.status(400).json("Content is required");
+      }
+      if (!postId || postId === "" || postId === null) {
+        res.status(400).json("PostId is required");
+      }
+      const post = await Post.findOne({ _id: postId });
+      if (!post) {
+        res.status(404).json("Post not found");
+      }
+
+      //Push comment to post without saving it
+      const comment = new Comment({
+        postId: postId,
         content: content,
-        commenterAvatarUrl: commenter.avatarUrl,
-        commenterName: commenter.name,
         commenterId: userId,
+        commenterName: commenter.name,
+        commenterAvatarUrl: commenter.avatarUrl,
         mediaUrl: mediaUrl === "" ? null : mediaUrl,
       });
-      await Post.findOneAndUpdate(
-        { _id: postId },
-        { $push: { comments: comment } }
-      );
+      post.comments.push(comment);
+      await post.save();
+      console.log("Comment created: ", comment);
+      console.log("Post updated with comment: ", postId);
       res.status(200).json(comment);
+    } catch (err) {
+      console.log(err);
+      res.status(500).json({ message: err.message });
+    }
+  },
+  getAPost: async (req, res, next) => {
+    try {
+      const postId = req.params.id;
+      const { userId } = req.query;
+      const post = await Post.findOne({ _id: postId });
+      if (!post) {
+        res.status(404).json("Post not found");
+      }
+      const modifiedPost = post.toObject();
+      modifiedPost.userLiked = post.likes.some((like) => like === userId);
+      modifiedPost.userIsPoster = post.posterId === userId;
+
+      const comments = post.comments;
+      const modifiedComments = comments.map((comment) => {
+        const commentObj = comment.toObject();
+        commentObj.isCommenter = comment.commenterId === userId;
+
+        return commentObj;
+      });
+
+      modifiedPost.comments = modifiedComments;
+      res.status(200).json(modifiedPost);
+    } catch (err) {
+      console.log(err);
+      res.status(500).json({ message: err.message });
+    }
+  },
+
+  getComments: async (req, res, next) => {
+    try {
+      const postId = req.params.id;
+      const { userId } = req.query;
+
+      const post = await Post.findOne({ _id: postId });
+      if (!post) {
+        res.status(404).json("Post not found");
+      }
+      const comments = post.comments;
+
+      const modifiedComments = comments.map((comment) => {
+        const commentObj = comment.toObject();
+        commentObj.isCommenter = comment.commenterId === userId;
+
+        return commentObj;
+      });
+
+      res.status(200).json(modifiedComments);
+    } catch (err) {
+      console.log(err);
+      res.status(500).json({ message: err.message });
+    }
+  },
+  deleteComment: async (req, res, next) => {
+    try {
+      const { id, commentId } = req.params;
+      const { userId } = req.body;
+      const post = await Post.findOne({ _id: id });
+      if (!post) {
+        res.status(404).json("Post not found");
+      }
+      //Remove from post
+      const commentIndex = post.comments.findIndex(
+        (comment) => comment._id.toString() === commentId
+      );
+      if (commentIndex === -1) {
+        res.status(404).json("Comment not found");
+      }
+      post.comments.splice(commentIndex, 1);
+      await post.save();
+
+      res.status(200).json("Comment deleted");
     } catch (err) {
       console.log(err);
       res.status(500).json({ message: err.message });
@@ -201,6 +294,30 @@ const postController = {
       });
 
       res.status(200).json(modifiedPosts);
+    } catch (err) {
+      console.log(err);
+      res.status(500).json({ message: err.message });
+    }
+  },
+  sharePost: async (req, res, next) => {
+    try {
+      const { userId, sharePostId } = req.body;
+      const poster = await User.findOne({ userId: userId });
+      const post = await Post.findOne({ _id: sharePostId });
+      const user = await User.findOne({ userId: userId });
+      if (!post) {
+        res.status(404).json("Post not found");
+      }
+      const sharedPost = await Post.create({
+        content: "",
+        posterAvatarUrl: user.avatarUrl,
+        name: user.name,
+        posterId: userId,
+        mediaUrl: "", //No media for shared post
+        sharePostId: sharePostId, //Used to query the original post
+      });
+      console.log("Post shared: ", sharedPost);
+      res.status(200).json(sharedPost);
     } catch (err) {
       console.log(err);
       res.status(500).json({ message: err.message });

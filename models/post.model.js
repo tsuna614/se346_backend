@@ -6,14 +6,18 @@ const commentSchema = mongoose.Schema({
     type: String,
     required: true,
   },
-
+  postId: {
+    type: String,
+    required: true,
+  },
   commenterName: {
     type: String,
     required: true,
   },
   commenterAvatarUrl: {
     type: String,
-    required: true,
+    required: false,
+    default: "",
   },
   content: {
     type: String,
@@ -160,4 +164,4 @@ postSchema.pre("deleteMany", async function (next) {
 });
 const Comment = mongoose.model("Comment", commentSchema);
 const Post = mongoose.model("Post", postSchema);
-module.exports = { Comment, Post };
+module.exports = { Post, Comment };
