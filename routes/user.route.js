@@ -1,12 +1,15 @@
 const express = require("express");
 const router = express.Router();
 const userController = require("../controllers/user.controller");
-
+const postController = require("../controllers/post.controller");
 // get all users
 router.get("/", userController.getUsers);
 
 // find user by id
 router.get("/:id", userController.getUserById);
+
+//toggle user follow between current user and target user
+router.put("/toggleFollow/", userController.toggleFollow);
 
 // find user by email
 router.get("/getUserByEmail/:email", userController.getUserByEmail);

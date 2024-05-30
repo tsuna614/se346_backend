@@ -4,9 +4,6 @@ const User = require("../models/user.model");
 const userController = {
   getUsers: async (req, res, next) => {
     try {
-      //If name or email is empty or undefined, simply make it ""
-      //Use user id to check if they are following each other
-      //If they do, add one field isFollowing: true , else false
       const limit = parseInt(req.query.limit) || 10;
       const page = parseInt(req.query.page) || 1;
       let { name, email, userId } = req.query;
@@ -18,13 +15,20 @@ const userController = {
         email = "";
       }
 
+      // For pagination purpose
+      const totalUsersCount = await User.countDocuments({
+        name: { $regex: name, $options: "i" },
+        email: { $regex: email, $options: "i" },
+      });
+
+      // Pagination
       const users = await User.find({
         name: { $regex: name, $options: "i" },
         email: { $regex: email, $options: "i" },
       })
         .limit(limit)
         .skip(limit * (page - 1));
-
+      //Following check
       if (userId) {
         const modifiedUsers = users.map((user) => {
           const userObj = user.toObject();
@@ -33,11 +37,13 @@ const userController = {
           );
           return userObj;
         });
-        //Remove self if exist
+        // Remove self if exist
         const result = modifiedUsers.filter((user) => user.userId !== userId);
 
+        res.setHeader("X-Total-Count", totalUsersCount);
         res.status(200).json(result);
       } else {
+        res.setHeader("X-Total-Count", totalUsersCount);
         res.status(200).json(users);
       }
     } catch (err) {
@@ -49,16 +55,67 @@ const userController = {
     try {
       // THIS IS FIND BY userId, NOT BY _id
       const { id } = req.params;
+      const { userId } = req.query;
       const user = await User.find({
         userId: id,
       });
-      console.log(user);
+      if (userId) {
+        const modifiedUser = user.map((user) => {
+          const userObj = user.toObject();
+          userObj.isFollowing = userObj.followers.some(
+            (follower) => follower === userId
+          );
+          return userObj;
+        });
+        res.status(200).json(modifiedUser);
+      }
       res.status(200).json(user);
     } catch (err) {
       console.log(err);
       res.status(500).json({ message: err.message });
     }
   },
+  //Follow and unfollow
+  toggleFollow: async (req, res, next) => {
+    try {
+      //If user is already following, remove from followers
+      const { userId, followId } = req.body;
+      const user = await User.findOne({ userId: userId });
+      const followUser = await User.findOne({ userId: followId });
+      let isFollowing = false;
+      console.log("user id is", userId);
+      console.log("follow id is", followId);
+      if (!user || !followUser) {
+        res.status(404).json("User not found");
+      }
+
+      if (user.following.includes(followId)) {
+        await User.findOneAndUpdate(
+          { userId: userId },
+          { $pull: { following: followId } }
+        );
+        await User.findOneAndUpdate(
+          { userId: followId },
+          { $pull: { followers: userId } }
+        );
+      } else {
+        await User.findOneAndUpdate(
+          { userId: userId },
+          { $push: { following: followId } }
+        );
+        await User.findOneAndUpdate(
+          { userId: followId },
+          { $push: { followers: userId } }
+        );
+        isFollowing = true;
+      }
+      res.status(200).json({ isFollowing: isFollowing });
+    } catch (err) {
+      console.log(err);
+      res.status(500).json({ message: err.message });
+    }
+  },
+
   getUserByEmail: async (req, res, next) => {
     try {
       const { email } = req.params;
