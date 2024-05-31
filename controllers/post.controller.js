@@ -3,7 +3,7 @@ const User = require("../models/user.model");
 const { Post, Comment } = require("../models/post.model");
 const { upload, cloudinary } = require("../cloudinary");
 const Group = require("../models/group.model");
-
+const Report = require("../models/report.model");
 //Generally receive a content, and file in multer as well as userId
 
 //Post to wall (normal post, no groupid)
@@ -336,6 +336,30 @@ const postController = {
       });
       console.log("Post shared: ", sharedPost);
       res.status(200).json(sharedPost);
+    } catch (err) {
+      console.log(err);
+      res.status(500).json({ message: err.message });
+    }
+  },
+  //Take reason , userId and postId
+  reportPost: async (req, res, next) => {
+    try {
+      const { userId, postId, reason } = req.body;
+      const post = await Post.findOne({ _id: postId });
+      if (!post) {
+        res.status(404).json("Post not found");
+      }
+      //Check if user has already reported post
+      const report = await Report.findOne({ userId: userId, postId: postId });
+      //If yes, ignore  ,still return 200. If no, create report
+      if (!report) {
+        await Report.create({
+          userId: userId,
+          postId: postId,
+          reason: reason,
+        });
+      }
+      res.status(200).json("Post reported");
     } catch (err) {
       console.log(err);
       res.status(500).json({ message: err.message });
