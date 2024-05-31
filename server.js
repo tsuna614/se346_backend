@@ -6,6 +6,7 @@ const path = require("path");
 const userRoute = require("./routes/user.route");
 const postRoute = require("./routes/post.route");
 const groupRoute = require("./routes/group.route");
+const adminRoute = require("./routes/admin.route");
 require("dotenv").config();
 
 mongoose.connect(
@@ -32,7 +33,7 @@ app.use(express.json());
 app.use("/v1/user", userRoute);
 app.use("/v1/post", postRoute);
 app.use("/v1/group", groupRoute);
-
+app.use("/v1/admin", adminRoute);
 //Error handler
 app.use((err, req, res, next) => {
   console.log(err);

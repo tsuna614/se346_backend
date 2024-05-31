@@ -1,6 +1,7 @@
 const { log } = require("console");
 const User = require("../models/user.model");
-
+const Group = require("../models/group.model");
+const { cloudinary } = require("../cloudinary");
 const userController = {
   getUsers: async (req, res, next) => {
     try {
@@ -184,6 +185,144 @@ const userController = {
         res.status(200).json("Email is available");
       }
     } catch (err) {
+      res.status(500).json({ message: err.message });
+    }
+  },
+  getFollowing: async (req, res, next) => {
+    try {
+      const userId = req.params.id;
+      console.log("userId", userId);
+      const user = await User.findOne({ userId: userId });
+      const following = user.following;
+      const users = await User.find({ userId: { $in: following } });
+      const modifiedUsers = users.map((user) => {
+        const userObj = user.toObject();
+        userObj.isFollowing = true;
+        return userObj;
+      });
+      res.status(200).json(modifiedUsers);
+    } catch (err) {
+      console.log(err);
+      res.status(500).json({ message: err.message });
+    }
+  },
+  getGroups: async (req, res, next) => {
+    try {
+      const userId = req.params.id;
+      console.log("userId for groups", userId);
+      const user = await User.findOne({ userId: userId });
+      if (!user) {
+        res.status(404).json("User not found");
+      }
+      //Find groups that user is member of
+      const groups = await Group.find({
+        members: { $elemMatch: { id: userId } },
+      });
+      const modifiedGroups = groups.map((group) => {
+        const groupObj = group.toObject();
+        groupObj.isMember = true;
+        return groupObj;
+      });
+      res.status(200).json(modifiedGroups);
+    } catch (err) {
+      console.log(err);
+      res.status(500).json({ message: err.message });
+    }
+  },
+  changeAvatar: async (req, res, next) => {
+    try {
+      const { userId } = req.body;
+      const media = req.file;
+      if (!media) {
+        res.status(400).json("No file uploaded");
+      }
+      // Delete old avatar from cloudinary
+      const user = await User.findOne({ userId: userId });
+      if (!user) {
+        res.status(404).json("User not found");
+      }
+      if (user.avatarUrl) {
+        const publicId = user.avatarUrl.split("/").pop().split(".")[0];
+        await cloudinary.uploader.destroy(publicId);
+        console.log("Deleted old avatar", publicId);
+      }
+      // Upload new avatar to cloudinary
+      const result = await cloudinary.uploader.upload(media.path);
+      const avatar = result.secure_url;
+      console.log("New avatar", avatar);
+      const updatedUser = await User.findOneAndUpdate(
+        { userId: userId },
+        { avatarUrl: avatar },
+        { new: true }
+      );
+      res.status(200).json(updatedUser);
+    } catch (err) {
+      console.log(err);
+      res.status(500).json({ message: err.message });
+    }
+  },
+  changeProfileBackground: async (req, res, next) => {
+    try {
+      const { userId } = req.body;
+      const media = req.file;
+      if (!media) {
+        res.status(400).json("No file uploaded");
+      }
+      // Delete old avatar from cloudinary
+      const user = await User.findOne({ userId: userId });
+      if (!user) {
+        res.status(404).json("User not found");
+      }
+      if (user.profileBackground) {
+        const publicId = user.profileBackground.split("/").pop().split(".")[0];
+        await cloudinary.uploader.destroy(publicId);
+      }
+      // Upload new avatar to cloudinary
+      const result = await cloudinary.uploader.upload(media.path);
+      const profileBackground = result.secure_url;
+      const updatedUser = await User.findOneAndUpdate(
+        { userId: userId },
+        { profileBackground: profileBackground },
+        { new: true }
+      );
+      res.status(200).json(updatedUser);
+    } catch (err) {
+      console.log(err);
+
+      res.status(500).json({ message: err.message });
+    }
+  },
+  changeName: async (req, res, next) => {
+    try {
+      const { userId, name } = req.body;
+      if (!name) {
+        res.status(400).json("Name is required");
+      }
+      const updatedUser = await User.findOneAndUpdate(
+        { userId: userId },
+        { name: name },
+        { new: true }
+      );
+      res.status(200).json(updatedUser);
+    } catch (err) {
+      console.log(err);
+      res.status(500).json({ message: err.message });
+    }
+  },
+  changeBio: async (req, res, next) => {
+    try {
+      const { userId, bio } = req.body;
+      if (!bio) {
+        res.status(400).json("Bio is required");
+      }
+      const updatedUser = await User.findOneAndUpdate(
+        { userId: userId },
+        { bio: bio },
+        { new: true }
+      );
+      res.status(200).json(updatedUser);
+    } catch (err) {
+      console.log(err);
       res.status(500).json({ message: err.message });
     }
   },

@@ -62,7 +62,7 @@ const userSchema = mongoose.Schema({
 userSchema.post("findOneAndUpdate", async function (doc) {
   const userId = doc.userId;
   const avatarUrl = doc.avatarUrl;
-
+  console.log("Updating posts with new avatarUrl: ", avatarUrl);
   await Post.updateMany(
     { posterId: userId },
     { $set: { posterAvatarUrl: avatarUrl } }
