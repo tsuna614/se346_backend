@@ -326,6 +326,74 @@ const userController = {
       res.status(500).json({ message: err.message });
     }
   },
+  addFriend: async (req, res, next) => {
+    try {
+      const id1 = req.params.id1;
+      const id2 = req.params.id2;
+
+      const user1 = await User.find({
+        userId: id1,
+      });
+      await User.findOneAndUpdate(
+        { userId: id1 },
+        {
+          userFriends: [...user1[0].userFriends, id2],
+        },
+        {
+          new: true,
+        }
+      );
+
+      const user2 = await User.find({
+        userId: id2,
+      });
+      await User.findOneAndUpdate(
+        { userId: id2 },
+        {
+          userFriends: [...user2[0].userFriends, id1],
+        },
+        {
+          new: true,
+        }
+      );
+    } catch (err) {
+      res.status(500).json({ message: err.message });
+    }
+  },
+  removeFriend: async (req, res, next) => {
+    try {
+      const id1 = req.params.id1;
+      const id2 = req.params.id2;
+
+      const user1 = await User.find({
+        userId: id1,
+      });
+      await User.findOneAndUpdate(
+        { userId: id1 },
+        {
+          userFriends: user1[0].userFriends.filter((friend) => friend !== id2),
+        },
+        {
+          new: true,
+        }
+      );
+
+      const user2 = await User.find({
+        userId: id2,
+      });
+      await User.findOneAndUpdate(
+        { userId: id2 },
+        {
+          userFriends: user2[0].userFriends.filter((friend) => friend !== id1),
+        },
+        {
+          new: true,
+        }
+      );
+    } catch (err) {
+      res.status(500).json({ message: err.message });
+    }
+  },
 };
 
 module.exports = userController;

@@ -55,6 +55,10 @@ const userSchema = mongoose.Schema({
     default: Date.now,
     required: false,
   },
+  friends: {
+    type: Array,
+    required: false,
+  },
 });
 
 //After change or save, update updatedAt

@@ -34,8 +34,8 @@ router.delete("/deleteUserByEmail/:email", userController.deleteUserByEmail);
 // delete user by id
 router.delete("/deleteUserById/:id", userController.deleteUserById);
 
-// edit user by id
-
-// check if email already exists
+// friend request
+router.put("/addFriend/:id1/:id2", userController.addFriend);
+router.put("/removeFriend/:id1/:id2", userController.removeFriend);
 
 module.exports = router;
