@@ -7,6 +7,7 @@ const userRoute = require("./routes/user.route");
 const postRoute = require("./routes/post.route");
 const groupRoute = require("./routes/group.route");
 const adminRoute = require("./routes/admin.route");
+const loggingMiddleware = require("./middleware/logging.middleware");
 require("dotenv").config();
 
 mongoose.connect(
@@ -20,10 +21,11 @@ db.on("open", () => {
   console.log("Connected to database");
 });
 //Logger
-app.use((req, res, next) => {
-  console.log("API: ", req.method, req.path);
-  next();
-});
+// app.use((req, res, next) => {
+//   console.log("API: ", req.method, req.path);
+//   next();
+// });
+app.use(loggingMiddleware);
 
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, "public")));
