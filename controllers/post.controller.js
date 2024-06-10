@@ -295,8 +295,11 @@ const postController = {
       let groupIds = groupUserIsIn.map((group) => group._id.toString());
       //Get all posts from groups user is in
       const groupPosts = await Post.find({ groupId: { $in: groupIds } });
-      //Get all posts from users user is following
-      const userPosts = await Post.find({ posterId: { $in: following } });
+      //Get all posts from users user is following + GROUP ID NULL OR ""
+      const userPosts = await Post.find({
+        posterId: { $in: following },
+        groupId: { $in: [null, ""] },
+      });
       const posts = groupPosts.concat(userPosts);
 
       const modifiedPosts = posts.map((post) => {
