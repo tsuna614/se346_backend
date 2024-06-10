@@ -59,13 +59,14 @@ const userSchema = mongoose.Schema({
 
 //After change or save, update updatedAt
 //Get current avatarUrl and update it on post posterAvatarUrl with the same userId
+//Also change name
 userSchema.post("findOneAndUpdate", async function (doc) {
   const userId = doc.userId;
   const avatarUrl = doc.avatarUrl;
   console.log("Updating posts with new avatarUrl: ", avatarUrl);
   await Post.updateMany(
     { posterId: userId },
-    { $set: { posterAvatarUrl: avatarUrl } }
+    { $set: { posterAvatarUrl: avatarUrl, name: doc.name } }
   );
 });
 
